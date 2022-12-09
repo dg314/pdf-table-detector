@@ -4,13 +4,17 @@ import numpy as np
 import random
 import os
 
-def extract_image(image_path):
-    image = Image.open(image_path)
-    image = image.resize((354, 500))
-    return np.array(image)
+image_width, image_height = 354, 500
 
-def extract_bounding_box(annotation_path):
-    x0, y0, x1, y1 = float("inf"), float("inf"), -float("inf"), -float("inf")
+def extract_image(image_path):
+    ori_image = Image.open(image_path)
+    image_width_scale = image_width / ori_image.width
+    image_height_scale = image_height / ori_image.height
+    image = np.array(ori_image.resize((image_width, image_height)))
+    return image, image_width_scale, image_height_scale
+
+def extract_bounding_box(annotation_path, image_width_scale, image_height_scale):
+    c0, r0, c1, r1 = float("inf"), float("inf"), -float("inf"), -float("inf")
     num_table_annotations = 0
 
     with open(annotation_path) as file:
@@ -20,12 +24,17 @@ def extract_bounding_box(annotation_path):
             if len(annotations) == 10 and annotations[9] == "table":
                 num_table_annotations += 1
 
-                x0 = min(x0, float(annotations[1]))
-                y0 = min(y0, float(annotations[2]))
-                x1 = max(x1, float(annotations[3]))
-                y1 = max(y1, float(annotations[4]))
+                c0 = min(c0, float(annotations[1]))
+                r0 = min(r0, float(annotations[2]))
+                c1 = max(c1, float(annotations[3]))
+                r1 = max(r1, float(annotations[4]))
 
-    return None if num_table_annotations == 0 else np.array([x0, y0, x1, y1])
+    return None if num_table_annotations == 0 else np.array([
+        r0 * image_height_scale,
+        c0 * image_width_scale,
+        r1 * image_height_scale,
+        c1 * image_width_scale,
+    ])
 
 def get_data(data_dir="../data/docbank-samples", train_test_split=0.8):
     doc_root_names_half = set()
@@ -56,14 +65,14 @@ def get_data(data_dir="../data/docbank-samples", train_test_split=0.8):
     images, bounding_boxes = [], []
 
     for doc_root_name in doc_root_names_full:
+        image_path = doc_root_name + "_ori.jpg"
+        image, image_width_scale, image_height_scale = extract_image(image_path)
+
         annotation_path = doc_root_name + ".txt"
-        bounding_box = extract_bounding_box(annotation_path)
+        bounding_box = extract_bounding_box(annotation_path, image_width_scale, image_height_scale)
 
         if bounding_box is None:
             continue
-        
-        image_path = doc_root_name + "_ori.jpg"
-        image = extract_image(image_path)
 
         insertion_index = random.randint(0, len(bounding_boxes))
         images.insert(insertion_index, image)
