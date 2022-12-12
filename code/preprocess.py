@@ -5,19 +5,20 @@ import random
 import os
 
 image_width, image_height = 354, 500
+ann_width, ann_height = 1000, 1000
 
-def extract_image(image_path):
-    ori_image = Image.open(image_path)
-    image_width_scale = image_width / ori_image.width
-    image_height_scale = image_height / ori_image.height
-    image = np.array(ori_image.resize((image_width, image_height)))
-    return image, image_width_scale, image_height_scale
+def extract_image(ori_image_path):
+    ori_image = Image.open(ori_image_path)
+    image = np.array(ori_image.resize((image_width, image_height))) / 255.0
 
-def extract_bounding_box(annotation_path, image_width_scale, image_height_scale):
+    return image
+
+def extract_bounding_box(annotation_path):
     c0, r0, c1, r1 = float("inf"), float("inf"), -float("inf"), -float("inf")
-    num_table_annotations = 0
 
     with open(annotation_path) as file:
+        num_table_annotations = 0
+
         for line in file:
             annotations = line.split()
 
@@ -29,11 +30,21 @@ def extract_bounding_box(annotation_path, image_width_scale, image_height_scale)
                 c1 = max(c1, float(annotations[3]))
                 r1 = max(r1, float(annotations[4]))
 
-    return None if num_table_annotations == 0 else np.array([
-        r0 * image_height_scale,
-        c0 * image_width_scale,
-        r1 * image_height_scale,
-        c1 * image_width_scale,
+        if num_table_annotations == 0:
+            return None
+
+        for line in file:
+            annotations = line.split()
+
+            if len(annotations) == 10 and annotations[9] != "table":
+                if annotations[1] > c0 and annotations[2] > r0 and annotations[3] < c1 and annotations[4] < r1:
+                    return None
+
+    return np.array([
+        int(r0 * image_height / ann_height),
+        int(c0 * image_width / ann_width),
+        int(r1 * image_height / ann_height),
+        int(c1 * image_width / ann_width),
     ])
 
 def get_data(data_dir="../data/docbank-samples", train_test_split=0.8):
@@ -65,14 +76,15 @@ def get_data(data_dir="../data/docbank-samples", train_test_split=0.8):
     images, bounding_boxes = [], []
 
     for doc_root_name in doc_root_names_full:
-        image_path = doc_root_name + "_ori.jpg"
-        image, image_width_scale, image_height_scale = extract_image(image_path)
+        ori_image_path = doc_root_name + "_ori.jpg"
 
         annotation_path = doc_root_name + ".txt"
-        bounding_box = extract_bounding_box(annotation_path, image_width_scale, image_height_scale)
+        bounding_box = extract_bounding_box(annotation_path)
 
         if bounding_box is None:
             continue
+
+        image = extract_image(ori_image_path)
 
         insertion_index = random.randint(0, len(bounding_boxes))
         images.insert(insertion_index, image)
