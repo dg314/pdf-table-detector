@@ -4,7 +4,7 @@ import numpy as np
 import random
 import os
 
-image_width, image_height = 354, 500
+image_width, image_height = 256, 256
 ann_width, ann_height = 1000, 1000
 
 def extract_image(ori_image_path):
