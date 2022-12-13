@@ -34,11 +34,13 @@ def extract_bounding_box(annotation_path):
         if num_table_annotations == 0:
             return None
 
+        file.seek(0)
+
         for line in file:
             annotations = line.split()
 
             if len(annotations) == 10 and annotations[9] != "table":
-                if annotations[1] > c0 and annotations[2] > r0 and annotations[3] < c1 and annotations[4] < r1:
+                if float(annotations[1]) > c0 and float(annotations[2]) > r0 and float(annotations[3]) < c1 and float(annotations[4]) < r1:
                     return None
 
     return np.array([
