@@ -1,17 +1,18 @@
 
 import cv2
 import numpy as np
+import hyperparameters
 
 def data_loading_and_resizing(image_list, train_bounding_boxes):
     images = []
     labels = []
 
     for i in range(len(image_list)):
-        x_scale = 256 / image_list[i].shape[0]
-        y_scale = 256 / image_list[i].shape[1]
+        x_scale = hyperparameters.image_width / image_list[i].shape[0]
+        y_scale = hyperparameters.image_height / image_list[i].shape[1]
         
         # Resize Images to 256px x 256px
-        image = cv2.resize(image_list[i], (256,256)) 
+        image = cv2.resize(image_list[i], (hyperparameters.image_width, hyperparameters.image_height)) 
         
         # Resize the bbox coordinates
         if not np.any(train_bounding_boxes[i]<0):

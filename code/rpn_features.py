@@ -3,11 +3,13 @@ from iou import calculate_iou
 import random
 # from keras.applications.vgg16 import preprocess_input
 from tensorflow.keras.applications.vgg16 import preprocess_input
+import hyperparameters
+
 
 def calc_rpn(labels,resized_width, resized_height):
     downscale = float(16)
-    anchor_sizes = [64, 128, 256]
-    anchor_ratios = [[1, 1], [1./np.sqrt(2), 2./np.sqrt(2)], [2./np.sqrt(2), 1./np.sqrt(2)]]  # 1:1, 1:2*sqrt(2), 2*sqrt(2):1
+    anchor_sizes = hyperparameters.anchor_box_scales
+    anchor_ratios = hyperparameters.anchor_box_ratios
     num_anchors = len(anchor_sizes) * len(anchor_ratios)
 
     w_output = resized_width // 16 #width of output from last layer of VGG16

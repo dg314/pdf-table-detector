@@ -9,6 +9,7 @@ from keras.backend import image_data_format
 import os
 import time
 import pickle
+import hyperparameters
 
 
 class ModelConfig:
@@ -23,10 +24,10 @@ class ModelConfig:
         # Anchor box scales
         # Note that if im_size is smaller, anchor_box_scales should be scaled
         # Original anchor_box_scales in the paper is [128, 256, 512]
-        self.anchor_box_scales = [64, 128, 256]
+        self.anchor_box_scales = hyperparameters.anchor_box_scales
 
         # Anchor box ratios
-        self.anchor_box_ratios = [[1, 1], [1./math.sqrt(2), 2./math.sqrt(2)], [2./math.sqrt(2), 1./math.sqrt(2)]]
+        self.anchor_box_ratios = hyperparameters.anchor_box_ratios
 
         self.num_anchors = len(self.anchor_box_scales) * len(self.anchor_box_ratios)
 
@@ -54,12 +55,7 @@ class ModelConfig:
 
 
     def rpn_heads(self, ft_encoder):
-        USE_LR = True
-        if USE_LR:
-            activation = 'leaky_relu'
-        else:
-            activation = 'relu'
-        encoded_conv = tf.keras.layers.Conv2D(512, (3, 3), padding='same', activation=activation, 
+        encoded_conv = tf.keras.layers.Conv2D(512, (3, 3), padding='same', activation=hyperparameters.rpn_head_activation, 
                                             kernel_initializer='normal', name='conv_rpn')(ft_encoder)
 
         rpn_classifier = tf.keras.layers.Conv2D(self.num_anchors, (1, 1), activation='sigmoid', 
