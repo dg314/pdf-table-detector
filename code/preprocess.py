@@ -9,7 +9,8 @@ ann_width, ann_height = 1000, 1000
 
 def extract_image(ori_image_path):
     ori_image = Image.open(ori_image_path)
-    image = np.array(ori_image.resize((image_width, image_height))) / 255.0
+    # image = np.array(ori_image.resize((image_width, image_height))) / 255.0
+    image = np.array(ori_image.resize((image_width, image_height)))
 
     return image
 

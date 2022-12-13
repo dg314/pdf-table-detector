@@ -67,8 +67,8 @@ def calc_rpn(labels,resized_width, resized_height):
 						
 						# get IOU of the current GT box and the current anchor box
                         anch_coords = [xmin_anc, ymin_anc, xmax_anc, ymax_anc]
-                        #gt_coords = [gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]]
-                        gt_coords = [gta[bbox_num, 0], gta[bbox_num, 1], gta[bbox_num, 2], gta[bbox_num, 3]]
+                        gt_coords = [gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]]
+                        # gt_coords = [gta[bbox_num, 0], gta[bbox_num, 1], gta[bbox_num, 2], gta[bbox_num, 3]]
                         curr_iou = calculate_iou(anch_coords,gt_coords)
 
                         # calculate the regression targets if they will be needed
