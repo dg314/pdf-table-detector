@@ -1,6 +1,8 @@
 import numpy as np
 from iou import calculate_iou
 import random
+# from keras.applications.vgg16 import preprocess_input
+from tensorflow.keras.applications.vgg16 import preprocess_input
 
 def calc_rpn(labels,resized_width, resized_height):
     downscale = float(16)
@@ -177,6 +179,9 @@ def get_anchor_gt(images, labels):
                 # Zero-center by mean pixel, and preprocess image
                 # Check https://stackoverflow.com/questions/50213159/preprocess-input-in-keras-increase-the-size-of-train-drastically
                 # Also check https://stackoverflow.com/questions/47555829/preprocess-input-method-in-keras -> loading images with keras is better
+
+                # image_data = preprocess_input(image_data)                
+                # image_data = np.expand_dims(image_data, axis=0)
 
                 image_data = image_data[:,:, (2, 1, 0)]  # BGR -> RGB
                 image_data = image_data.astype(np.float32)
