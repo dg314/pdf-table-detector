@@ -6,20 +6,22 @@ import numpy as np
 import math
 # from keras.backend import image_dim_ordering
 from keras.backend import image_data_format
+import os
+import time
 
 class ModelConfig:
 
-    def __init__(self):
+    def __init__(self, img_w=256, img_h=256, epochs=10, model_weights_save_path=''):
 
         self.rpn_stride = 16
 
-        self.resized_image_w = 256
-        self.resized_image_h = 256
+        self.resized_image_w = img_w
+        self.resized_image_h = img_h
 
         # Anchor box scales
         # Note that if im_size is smaller, anchor_box_scales should be scaled
         # Original anchor_box_scales in the paper is [128, 256, 512]
-        self.anchor_box_scales = [64, 128, 256] 
+        self.anchor_box_scales = [64, 128, 256]
 
         # Anchor box ratios
         self.anchor_box_ratios = [[1, 1], [1./math.sqrt(2), 2./math.sqrt(2)], [2./math.sqrt(2), 1./math.sqrt(2)]]
@@ -37,6 +39,12 @@ class ModelConfig:
         self.optimizer = 'adam'
         self.rpn_model = None
         self.model_path = None
+        self.epochs = epochs
+        self.model_weights_save_path = model_weights_save_path
+
+        # Current epoch and time taken
+        self.current_epoch = -1
+        self.epoch_times = []
 
 
     def rpn_heads(self, ft_encoder):
@@ -95,3 +103,12 @@ class ModelConfig:
                                 loss=[loss_funcs[0], loss_funcs[1]],
                                 metrics=["acc"])
         
+
+    def save_model_weights(self):
+        if not os.path.exists(self.model_weights_save_path):
+            os.makedirs(self.model_weights_save_path)
+        self.rpn_model.save_weights(self.model_weights_save_path)
+
+
+    def load_model_weights(self):
+        self.rpn_model.load_weights(self.model_weights_save_path)
