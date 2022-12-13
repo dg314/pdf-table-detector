@@ -32,6 +32,8 @@ def extract_bounding_box(annotation_path):
                 r1 = max(r1, float(annotations[4]))
 
         if num_table_annotations == 0:
+            # No tables in image
+            # return np.array([-1, -1, -1, -1])
             return None
 
         file.seek(0)
@@ -41,6 +43,7 @@ def extract_bounding_box(annotation_path):
 
             if len(annotations) == 10 and annotations[9] != "table":
                 if float(annotations[1]) > c0 and float(annotations[2]) > r0 and float(annotations[3]) < c1 and float(annotations[4]) < r1:
+                    # multi-table image
                     return None
 
     return np.array([

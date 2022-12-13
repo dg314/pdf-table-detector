@@ -8,10 +8,12 @@ import math
 from keras.backend import image_data_format
 import os
 import time
+import pickle
+
 
 class ModelConfig:
 
-    def __init__(self, img_w=256, img_h=256, epochs=10, model_weights_save_path=''):
+    def __init__(self, img_w=256, img_h=256, epochs=10, model_weights_save_path='', load_weight_path=None):
 
         self.rpn_stride = 16
 
@@ -42,14 +44,23 @@ class ModelConfig:
         self.epochs = epochs
         self.model_weights_save_path = model_weights_save_path
 
+        # Load weights
+        if load_weight_path:
+            self.load_model_weights(load_weight_path)
+
         # Current epoch and time taken
         self.current_epoch = -1
         self.epoch_times = []
 
 
     def rpn_heads(self, ft_encoder):
-        encoded_conv = tf.keras.layers.Conv2D(512, (3, 3), padding='same', activation='relu', 
-                                        kernel_initializer='normal', name='conv_rpn')(ft_encoder)
+        USE_LR = True
+        if USE_LR:
+            activation = 'leaky_relu'
+        else:
+            activation = 'relu'
+        encoded_conv = tf.keras.layers.Conv2D(512, (3, 3), padding='same', activation=activation, 
+                                            kernel_initializer='normal', name='conv_rpn')(ft_encoder)
 
         rpn_classifier = tf.keras.layers.Conv2D(self.num_anchors, (1, 1), activation='sigmoid', 
                                                 kernel_initializer='uniform', name='rpn_classify')(encoded_conv)
@@ -104,11 +115,21 @@ class ModelConfig:
                                 metrics=["acc"])
         
 
-    def save_model_weights(self):
+    def save_model_weights(self, loss_cls, loss_regr, accuracy):
         if not os.path.exists(self.model_weights_save_path):
             os.makedirs(self.model_weights_save_path)
         self.rpn_model.save_weights(self.model_weights_save_path)
+        with open(self.model_weights_save_path+'loss_cls.pkl', 'wb') as f:
+            pickle.dump(loss_cls, f)
+        with open(self.model_weights_save_path+'loss_regr.pkl', 'wb') as f:
+            pickle.dump(loss_regr, f)
+        with open(self.model_weights_save_path+'accuracy.pkl', 'wb') as f:
+            pickle.dump(accuracy, f)
 
 
     def load_model_weights(self):
-        self.rpn_model.load_weights(self.model_weights_save_path)
+        try:
+            self.rpn_model.load_weights(self.model_weights_save_path)
+            print("Loaded model weights successfully")
+        except Exception as e:
+            print(f"Could not load weights: {e}")

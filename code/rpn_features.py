@@ -169,40 +169,40 @@ def get_anchor_gt(images, labels):
         for index in range(len(images)):
             image_data = images[index]
             label_data = np.expand_dims(labels[index], axis=0) # We expect labels to be (n, 4) in shape
-            # try:
-            # try:
-            y_rpn_cls, y_rpn_regr, num_pos = calc_rpn(label_data, resized_width, resized_height)
-            # except Exception as e:
-            #     print(f"Error with calc_rpn: {e}")
-            #     continue
+            try:
+                # try:
+                y_rpn_cls, y_rpn_regr, num_pos = calc_rpn(label_data, resized_width, resized_height)
+                # except Exception as e:
+                #     print(f"Error with calc_rpn: {e}")
+                #     continue
 
-            # Zero-center by mean pixel, and preprocess image
-            # Check https://stackoverflow.com/questions/50213159/preprocess-input-in-keras-increase-the-size-of-train-drastically
-            # Also check https://stackoverflow.com/questions/47555829/preprocess-input-method-in-keras -> loading images with keras is better
+                # Zero-center by mean pixel, and preprocess image
+                # Check https://stackoverflow.com/questions/50213159/preprocess-input-in-keras-increase-the-size-of-train-drastically
+                # Also check https://stackoverflow.com/questions/47555829/preprocess-input-method-in-keras -> loading images with keras is better
 
-            # image_data = preprocess_input(image_data)                
-            # image_data = np.expand_dims(image_data, axis=0)
+                # image_data = preprocess_input(image_data)                
+                # image_data = np.expand_dims(image_data, axis=0)
 
-            image_data = image_data[:,:, (2, 1, 0)]  # BGR -> RGB
-            image_data = image_data.astype(np.float32)
-            image_data[:, :, 0] -= 103.939
-            image_data[:, :, 1] -= 116.779
-            image_data[:, :, 2] -= 123.68
-            image_data /= 1.0
+                image_data = image_data[:,:, (2, 1, 0)]  # BGR -> RGB
+                image_data = image_data.astype(np.float32)
+                image_data[:, :, 0] -= 103.939
+                image_data[:, :, 1] -= 116.779
+                image_data[:, :, 2] -= 123.68
+                image_data /= 1.0
 
-            image_data = np.transpose(image_data, (2, 0, 1))
-            image_data = np.expand_dims(image_data, axis=0)
+                image_data = np.transpose(image_data, (2, 0, 1))
+                image_data = np.expand_dims(image_data, axis=0)
 
-            # y_rpn_regr is a concat of y_rpn_overlap (x4) and y_rpn_regr. Looks like we are converting y_rpn_regr vals to float
-            y_rpn_regr[:, y_rpn_regr.shape[1]//2:, :, :] *= 1.0
+                # y_rpn_regr is a concat of y_rpn_overlap (x4) and y_rpn_regr. Looks like we are converting y_rpn_regr vals to float
+                y_rpn_regr[:, y_rpn_regr.shape[1]//2:, :, :] *= 1.0
 
-            image_data = np.transpose(image_data, (0, 2, 3, 1)) # converting to RGB again?
-            y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9) again ???
-            y_rpn_regr = np.transpose(y_rpn_regr, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9) again ???
+                image_data = np.transpose(image_data, (0, 2, 3, 1)) # converting to RGB again?
+                y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9) again ???
+                y_rpn_regr = np.transpose(y_rpn_regr, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9) again ???
 
-            yield np.copy(image_data), [np.copy(y_rpn_cls), np.copy(y_rpn_regr)], label_data, index
+                yield np.copy(image_data), [np.copy(y_rpn_cls), np.copy(y_rpn_regr)], label_data, index
 
-            # except Exception as e:
-            #     print(e)
-            #     continue
+            except Exception as e:
+                print(e)
+                continue
 
