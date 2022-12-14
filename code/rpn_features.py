@@ -165,8 +165,8 @@ def calc_rpn(labels,resized_width, resized_height):
 
 
 def get_anchor_gt(images, labels):
-    resized_width = 256
-    resized_height = 256
+    resized_width = hyperparameters.image_width
+    resized_height = hyperparameters.image_height
     while True:
         for index in range(len(images)):
             image_data = images[index]
@@ -182,15 +182,15 @@ def get_anchor_gt(images, labels):
                 # Check https://stackoverflow.com/questions/50213159/preprocess-input-in-keras-increase-the-size-of-train-drastically
                 # Also check https://stackoverflow.com/questions/47555829/preprocess-input-method-in-keras -> loading images with keras is better
 
-                # image_data = preprocess_input(image_data)                
+                image_data = preprocess_input(image_data)
                 # image_data = np.expand_dims(image_data, axis=0)
 
-                image_data = image_data[:,:, (2, 1, 0)]  # BGR -> RGB
-                image_data = image_data.astype(np.float32)
-                image_data[:, :, 0] -= 103.939
-                image_data[:, :, 1] -= 116.779
-                image_data[:, :, 2] -= 123.68
-                image_data /= 1.0
+                # image_data = image_data[:,:, (2, 1, 0)]  # BGR -> RGB
+                # image_data = image_data.astype(np.float32)
+                # image_data[:, :, 0] -= 103.939
+                # image_data[:, :, 1] -= 116.779
+                # image_data[:, :, 2] -= 123.68
+                # image_data /= 1.0
 
                 image_data = np.transpose(image_data, (2, 0, 1))
                 image_data = np.expand_dims(image_data, axis=0)
