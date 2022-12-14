@@ -14,7 +14,7 @@ import hyperparameters
 
 class ModelConfig:
 
-    def __init__(self, img_w=256, img_h=256, epochs=20, model_weights_save_path='', load_weight_path=None):
+    def __init__(self, img_w=256, img_h=256, epochs=10, model_weights_save_path='', load_weight_path=None):
 
         self.rpn_stride = 16
 
@@ -36,19 +36,16 @@ class ModelConfig:
         self.im_size = 300
 
         # overlaps for RPN
-        self.rpn_min_overlap = 0.5
-        self.rpn_max_overlap = 0.9
+        self.rpn_min_overlap = 0.3
+        self.rpn_max_overlap = 0.7
 
         self.optimizer = 'adam'
         self.rpn_model = None
         self.model_path = None
         self.epochs = epochs
-
-        # Initialize the model
-        self.model_initialize()
-
         self.model_weights_save_path = model_weights_save_path
 
+        self.model_initialize()
         # Load weights
         if load_weight_path:
             self.load_model_weights(load_weight_path)
@@ -59,31 +56,14 @@ class ModelConfig:
 
 
     def rpn_heads(self, ft_encoder):
-        encoded_conv = tf.keras.layers.Conv2D(512, 3, (1, 1), padding='same', activation=hyperparameters.rpn_head_activation, 
+        encoded_conv = tf.keras.layers.Conv2D(512, (3, 3), padding='same', activation=hyperparameters.rpn_head_activation, 
                                             kernel_initializer='normal', name='conv_rpn')(ft_encoder)
 
-        # Org
         rpn_classifier = tf.keras.layers.Conv2D(self.num_anchors, (1, 1), activation='sigmoid', 
                                                 kernel_initializer='uniform', name='rpn_classify')(encoded_conv)
         rpn_regressor = tf.keras.layers.Conv2D(self.num_anchors * 4, (1, 1), activation='linear', 
                                                 kernel_initializer='uniform', name='rpn_regress')(encoded_conv)
 
-        # More complex
-        # dense1 = tf.keras.layers.Dense(256, activation=hyperparameters.rpn_head_activation)(encoded_conv)
-        # rpn_classifier = tf.keras.layers.Conv2D(self.num_anchors, (1, 1), activation='sigmoid', 
-        #                                         kernel_initializer='uniform', name='rpn_classify')(dense1)
-        # rpn_regressor = tf.keras.layers.Conv2D(self.num_anchors * 4, (1, 1), activation='linear', 
-        #                                         kernel_initializer='uniform', name='rpn_regress')(dense1)
-
-        # Most complex
-        # dense1 = tf.keras.layers.Dense(256, activation=hyperparameters.rpn_head_activation)(encoded_conv)
-        # dense2 = tf.keras.layers.Dense(100, activation=hyperparameters.rpn_head_activation)(dense1)
-        # dense3 = tf.keras.layers.Dense(55, activation=hyperparameters.rpn_head_activation)(dense2)
-        # dense4 = tf.keras.layers.Dense(15, activation=hyperparameters.rpn_head_activation)(dense3)
-        # rpn_classifier = tf.keras.layers.Conv2D(self.num_anchors, (1, 1), activation='sigmoid', 
-        #                                         kernel_initializer='uniform', name='rpn_classify')(dense4)
-        # rpn_regressor = tf.keras.layers.Conv2D(self.num_anchors * 4, (1, 1), activation='linear', 
-        #                                         kernel_initializer='uniform', name='rpn_regress')(dense4)
         return [rpn_classifier, rpn_regressor, ft_encoder]
 
 
@@ -146,7 +126,7 @@ class ModelConfig:
 
     def load_model_weights(self, load_weight_path):
         try:
-            self.rpn_model.load_weights(self.model_weights_save_path)
+            self.rpn_model.load_weights(load_weight_path)
             print("Loaded model weights successfully")
         except Exception as e:
             print(f"Could not load weights: {e}")

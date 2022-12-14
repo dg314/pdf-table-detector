@@ -118,22 +118,16 @@ def infer_roi_from_rpn(anchor_sizes, anchor_ratios, classif_layer, regress_layer
 
     for anchor_size in anchor_sizes:
         for anchor_ratio in anchor_ratios:
-            # anchor_width = (128 * 1) / 16 = 8  => width of current anchor
-            # anchor_height = (128 * 2) / 16 = 16 => height of current anchor
             anchor_width = (anchor_ratio[0] * anchor_size) / 16
             anchor_height = (anchor_ratio[1] * anchor_size) / 16
             
-            # layer_ix: 0~8 (9 anchors)
-            # the Kth anchor of all position in the feature map (9th in total)
-            # BBox regression for each position for current anchor (shape, size)
+            # Regress the current (size, shape) box for each position
             curr_box_regression = regress_layer[0, :, :, (layer_ix*4):((layer_ix*4) + 4)].transpose(2, 0, 1)
             
-            # For every point in x, there are all the y points and vice versa
-            # Construct grid of X,Y coordinates for the current anchor box definition
+            # Create a grid for the anchor box centers
             grid_X, grid_Y = np.meshgrid(np.arange(feature_map_width), np.arange(feature_map_height))
 
-            # Calculate anchor position and size for each feature map point
-            # Set ROI proposals defined by top left, width and height
+            # Defining ROI proposals by top left, width and height
             roi_proposals[0, :, :, layer_ix] = grid_X - anchor_width / 2
             roi_proposals[1, :, :, layer_ix] = grid_Y - anchor_height / 2
             roi_proposals[2, :, :, layer_ix] = anchor_width
@@ -141,20 +135,15 @@ def infer_roi_from_rpn(anchor_sizes, anchor_ratios, classif_layer, regress_layer
 
             roi_proposals[:, :, :, layer_ix] = regress_anchor(roi_proposals[:, :, :, layer_ix], curr_box_regression)
 
-            # Avoid width and height exceeding 1
-            # TODO: SHOULD THIS NOT BE NP.MINIMUM()!!!!
+            # Discard if width or height > 1
             roi_proposals[2, :, :, layer_ix] = np.maximum(1, roi_proposals[2, :, :, layer_ix])
             roi_proposals[3, :, :, layer_ix] = np.maximum(1, roi_proposals[3, :, :, layer_ix])
-            # roi_proposals[2, :, :, layer_ix] = np.minimum(1, roi_proposals[2, :, :, layer_ix])
-            # roi_proposals[3, :, :, layer_ix] = np.minimum(1, roi_proposals[3, :, :, layer_ix])
 
-            # Convert (x, y , w, h) to (x1, y1, x2, y2)
-            # x1, y1 is top left coordinate
-            # x2, y2 is bottom right coordinate
+            # Transform coordinates to the (xmin, ymin, xmax, ymax) system
             roi_proposals[2, :, :, layer_ix] += roi_proposals[0, :, :, layer_ix]
             roi_proposals[3, :, :, layer_ix] += roi_proposals[1, :, :, layer_ix]
 
-            # Avoid bboxes drawn outside the feature map
+            # Discard boxes beyond the boundaries of feature map
             roi_proposals[0, :, :, layer_ix] = np.maximum(0, roi_proposals[0, :, :, layer_ix])
             roi_proposals[1, :, :, layer_ix] = np.maximum(0, roi_proposals[1, :, :, layer_ix])
             roi_proposals[2, :, :, layer_ix] = np.minimum(feature_map_width-1, roi_proposals[2, :, :, layer_ix])
@@ -170,8 +159,7 @@ def infer_roi_from_rpn(anchor_sizes, anchor_ratios, classif_layer, regress_layer
     roi_valid_proposed_box_probs = roi_proposed_box_probs[np.where((roi_proposed_boxes[:, 0] < roi_proposed_boxes[:, 2]) & \
                                                                     (roi_proposed_boxes[:, 1] < roi_proposed_boxes[:, 3]))]
 
-    # Apply non_max_suppression
-    # Only extract the bboxes. Don't need rpn probs in the later process
+    # Discard non-maxes
     chosen_bboxes = non_max_suppression_fast(roi_valid_proposed_boxes, roi_valid_proposed_box_probs, 
                                             overlap_thresh=overlap_thresh, max_boxes=max_boxes)
 

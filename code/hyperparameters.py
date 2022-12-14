@@ -18,4 +18,3 @@ anchor_box_ratios = [[1, 1], [2, 1], [1, math.sqrt(2)], [1, 2], [1, 4]]
 # RPN Head
 rpn_head_activation = 'leaky_relu'
 
-

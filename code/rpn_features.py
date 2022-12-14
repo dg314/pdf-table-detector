@@ -165,8 +165,8 @@ def calc_rpn(labels,resized_width, resized_height):
 
 
 def get_anchor_gt(images, labels):
-    resized_width = hyperparameters.image_width
-    resized_height = hyperparameters.image_height
+    resized_width = 256
+    resized_height = 256
     while True:
         for index in range(len(images)):
             image_data = images[index]
