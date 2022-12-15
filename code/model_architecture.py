@@ -109,6 +109,7 @@ class ModelConfig:
         self.rpn_model = tf.keras.models.Model(resized_image, rpn_heads[:2])
         self.rpn_model.compile(optimizer=self.optimizer, 
                                 loss=[loss_funcs[0], loss_funcs[1]],
+                                loss_weights=hyperparameters.loss_weights,
                                 metrics=["acc"])
         
 

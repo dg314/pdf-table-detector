@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from iou import compute_iou
 
 
 def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
@@ -72,6 +73,23 @@ def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
     # return only the bounding boxes that were picked using the integer data type
     boxes = boxes[pick].astype("int")
     return boxes
+
+
+def match_regions(y_true, y_predicted, threshold=0.3):
+    hits, accuracy = [], []
+    for true_roi in y_true:
+        for pred_roi in y_predicted:
+            match = compute_iou(true_roi, pred_roi)
+            if match > threshold:
+                hits.append(pred_roi)
+                accuracy.append(match)
+    
+    if len(accuracy) > 0:
+        mean_acc = np.mean(accuracy)
+    else:
+        mean_acc = 0
+    
+    return hits, mean_acc
 
 
 def regress_anchor(unadjusted_box, adjustment):
@@ -164,3 +182,4 @@ def infer_roi_from_rpn(anchor_sizes, anchor_ratios, classif_layer, regress_layer
                                             overlap_thresh=overlap_thresh, max_boxes=max_boxes)
 
     return chosen_bboxes
+

@@ -1,5 +1,5 @@
 import numpy as np
-from iou import calculate_iou
+from iou import compute_iou
 import random
 # from keras.applications.vgg16 import preprocess_input
 from tensorflow.keras.applications.vgg16 import preprocess_input
@@ -73,7 +73,7 @@ def calc_rpn(labels,resized_width, resized_height):
                         anch_coords = [xmin_anc, ymin_anc, xmax_anc, ymax_anc]
                         gt_coords = [gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]]
                         # gt_coords = [gta[bbox_num, 0], gta[bbox_num, 1], gta[bbox_num, 2], gta[bbox_num, 3]]
-                        curr_iou = calculate_iou(anch_coords,gt_coords)
+                        curr_iou = compute_iou(anch_coords,gt_coords)
 
                         # calculate the regression targets if they will be needed
                         if curr_iou > best_iou_for_bbox[bbox_num] or curr_iou > 0.7:

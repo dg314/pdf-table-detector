@@ -18,3 +18,8 @@ anchor_box_ratios = [[1, 1], [2, 1], [1, math.sqrt(2)], [1, 2], [1, 4]]
 # RPN Head
 rpn_head_activation = 'leaky_relu'
 
+
+# Weighing the loss functions: [class_loss_wt, regr_loss_wt]
+# loss_weights = None
+loss_weights = [0.8, 0.2]
+loss_weights = [x / sum(loss_weights) for x in loss_weights] # ensuring them sum to 1

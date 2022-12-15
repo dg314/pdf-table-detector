@@ -1,5 +1,5 @@
 
-def calculate_iou(a, b, epsilon=1e-6):
+def compute_iou(a, b, epsilon=1e-6):
     # Intersection
     x1 = max(a[0], b[0])
     y1 = max(a[1], b[1])
