@@ -3,13 +3,16 @@ from PIL import Image
 import numpy as np
 import random
 import os
+import hyperparameters
 
-image_width, image_height = 512, 512
+
+image_width, image_height = hyperparameters.image_width, hyperparameters.image_height
 ann_width, ann_height = 1000, 1000
 
 def extract_image(ori_image_path):
     ori_image = Image.open(ori_image_path)
-    image = np.array(ori_image.resize((image_width, image_height))) / 255.0
+    # image = np.array(ori_image.resize((image_width, image_height))) / 255.0
+    image = np.array(ori_image.resize((image_width, image_height)))
 
     return image
 
@@ -31,6 +34,8 @@ def extract_bounding_box(annotation_path):
                 r1 = max(r1, float(annotations[4]))
 
         if num_table_annotations == 0:
+            # No tables in image
+            # return np.array([-1, -1, -1, -1])
             return None
 
         file.seek(0)
@@ -40,13 +45,14 @@ def extract_bounding_box(annotation_path):
 
             if len(annotations) == 10 and annotations[9] != "table":
                 if float(annotations[1]) > c0 and float(annotations[2]) > r0 and float(annotations[3]) < c1 and float(annotations[4]) < r1:
+                    # multi-table image
                     return None
 
     return np.array([
-        int(r0 * image_height / ann_height),
         int(c0 * image_width / ann_width),
-        int(r1 * image_height / ann_height),
+        int(r0 * image_height / ann_height),
         int(c1 * image_width / ann_width),
+        int(r1 * image_height / ann_height),
     ])
 
 def get_data(data_dir="../data/docbank-samples", train_test_split=0.8):
