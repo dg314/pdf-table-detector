@@ -49,10 +49,10 @@ def extract_bounding_box(annotation_path):
                     return None
 
     return np.array([
-        int(r0 * image_height / ann_height),
         int(c0 * image_width / ann_width),
-        int(r1 * image_height / ann_height),
+        int(r0 * image_height / ann_height),
         int(c1 * image_width / ann_width),
+        int(r1 * image_height / ann_height),
     ])
 
 def get_data(data_dir="../data/docbank-samples", train_test_split=0.8):

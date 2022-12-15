@@ -16,24 +16,17 @@ class ModelConfig:
 
     def __init__(self, img_w=256, img_h=256, epochs=10, model_weights_save_path='', load_weight_path=None):
 
-        self.rpn_stride = 16
-
         self.resized_image_w = img_w
         self.resized_image_h = img_h
+        self.rpn_stride = 16
 
         # Anchor box scales
         # Note that if im_size is smaller, anchor_box_scales should be scaled
         # Original anchor_box_scales in the paper is [128, 256, 512]
         self.anchor_box_scales = hyperparameters.anchor_box_scales
-
         # Anchor box ratios
         self.anchor_box_ratios = hyperparameters.anchor_box_ratios
-
         self.num_anchors = len(self.anchor_box_scales) * len(self.anchor_box_ratios)
-
-        # Size to resize the smallest side of the image
-        # Original setting in paper is 600. Set to 300 in here to save training time
-        self.im_size = 300
 
         # overlaps for RPN
         self.rpn_min_overlap = 0.3
@@ -72,25 +65,23 @@ class ModelConfig:
         anchor_count = self.num_anchors
         eps = 1e-4
         
-        def classification_loss(y_true, y_pred):
-
-            numerator = K.sum(y_true[:, :, :, :anchor_count] * K.binary_crossentropy(y_pred[:, :, :, :], y_true[:, :, :, anchor_count:]))
-            denominator = K.sum(eps + y_true[:, :, :, :anchor_count])
-
+        def classification_loss(gt_label, pred_label):
+            # gt_label is np.concatenate([is_foreground, has_table], axis=1)
+            bce_loss = K.binary_crossentropy(pred_label[:, :, :, :], gt_label[:, :, :, anchor_count:])
+            numerator = K.sum(gt_label[:, :, :, :anchor_count] * bce_loss)
+            denominator = K.sum(gt_label[:, :, :, :anchor_count] + eps)
             return 1.0 * numerator / denominator
 
-        def regression_loss(y_true, y_pred):
+        def regression_loss(gt_label, pred_label):
+            # gt_label is np.concatenate([np.repeat(has_table, 4, axis=1), reg_gt], axis=1)
+            dists = gt_label[:, :, :, 4 * anchor_count:] - pred_label
+            abs_dist = K.abs(dists)
+            # If abs_dist <= 1.0, lte1_flag = 1
+            lte1_flag = K.cast(K.less_equal(abs_dist, 1.0), tf.float32)
 
-            # x is the difference between true value and predicted vaue
-            x = y_true[:, :, :, 4 * anchor_count:] - y_pred
-            x_abs = K.abs(x)
-
-            # If x_abs <= 1.0, x_bool = 1
-            x_bool = K.cast(K.less_equal(x_abs, 1.0), tf.float32)
-
-            numerator = K.sum(y_true[:, :, :, :4 * anchor_count] * (x_bool * (0.5 * x * x) + (1 - x_bool) * (x_abs - 0.5)))
-            denominator = K.sum(eps + y_true[:, :, :, :4 * anchor_count])
-
+            total_loss = lte1_flag * (0.5 * dists * dists) + (1 - lte1_flag) * (abs_dist - 0.5)
+            numerator = K.sum(gt_label[:, :, :, :4 * anchor_count] * total_loss) # consider regr loss only where tables exist
+            denominator = K.sum(gt_label[:, :, :, :4 * anchor_count] + eps)
             return 1.0 * numerator / denominator
 
         return [classification_loss, regression_loss]
@@ -109,11 +100,10 @@ class ModelConfig:
         self.rpn_model = tf.keras.models.Model(resized_image, rpn_heads[:2])
         self.rpn_model.compile(optimizer=self.optimizer, 
                                 loss=[loss_funcs[0], loss_funcs[1]],
-                                loss_weights=hyperparameters.loss_weights,
-                                metrics=["acc"])
+                                loss_weights=hyperparameters.loss_weights)
         
 
-    def save_model_weights(self, loss_cls, loss_regr, accuracy):
+    def save_model_weights(self, loss_cls, loss_regr):
         if not os.path.exists(self.model_weights_save_path):
             os.makedirs(self.model_weights_save_path)
         self.rpn_model.save_weights(self.model_weights_save_path)
@@ -121,8 +111,6 @@ class ModelConfig:
             pickle.dump(loss_cls, f)
         with open(self.model_weights_save_path+'loss_regr.pkl', 'wb') as f:
             pickle.dump(loss_regr, f)
-        with open(self.model_weights_save_path+'accuracy.pkl', 'wb') as f:
-            pickle.dump(accuracy, f)
 
 
     def load_model_weights(self, load_weight_path):

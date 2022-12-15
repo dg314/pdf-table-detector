@@ -19,8 +19,8 @@ def generate_roi_props(labels,resized_width, resized_height):
     num_bboxes = len(labels) #num of bboxes required for either the train or test dataset
   
     has_table = np.zeros((h_output, w_output, num_anchors)) #Boolean-if the there exists a table in the box
-    is_foreground = np.zeros((h_output, w_output, num_anchors)) #Boolean- if the box is a foreground box or not
-    y_rpn_regr = np.zeros((h_output, w_output, num_anchors * 4)) #stores the trainable targets (inputs for loss function)
+    is_foreground = np.zeros((h_output, w_output, num_anchors)) #Boolean- if the box is definitevly foreground/background box or not (ambiguous)
+    reg_gt = np.zeros((h_output, w_output, num_anchors * 4)) #stores the trainable targets (inputs for loss function)
   
     num_anchors_for_bbox = np.zeros(num_bboxes).astype(int)
     best_anchor_for_bbox = -1 * np.ones((num_bboxes, 4)).astype(int)
@@ -121,7 +121,7 @@ def generate_roi_props(labels,resized_width, resized_height):
                         is_foreground[y, x, ratio_idx + n_anchratios * size_idx] = 1
                         has_table[y, x, ratio_idx + n_anchratios * size_idx] = 1
                         start = 4 * (ratio_idx + n_anchratios * size_idx)
-                        y_rpn_regr[y, x, start:start+4] = best_regr
+                        reg_gt[y, x, start:start+4] = best_regr
 
 	# we ensure that every bbox has at least one positive RPN region
     for idx in range(num_anchors_for_bbox.shape[0]):
@@ -132,7 +132,7 @@ def generate_roi_props(labels,resized_width, resized_height):
             is_foreground[best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], best_anchor_for_bbox[idx,2] + n_anchratios * best_anchor_for_bbox[idx,3]] = 1
             has_table[best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], best_anchor_for_bbox[idx,2] + n_anchratios * best_anchor_for_bbox[idx,3]] = 1
             start = 4 * (best_anchor_for_bbox[idx,2] + n_anchratios * best_anchor_for_bbox[idx,3])
-            y_rpn_regr[best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], start:start+4] = best_dx_for_bbox[idx, :]
+            reg_gt[best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], start:start+4] = best_dx_for_bbox[idx, :]
   
     has_table = np.transpose(has_table, (2, 0, 1))
     has_table = np.expand_dims(has_table, axis=0)
@@ -140,8 +140,8 @@ def generate_roi_props(labels,resized_width, resized_height):
     is_foreground = np.transpose(is_foreground, (2, 0, 1))
     is_foreground = np.expand_dims(is_foreground, axis=0)
     
-    y_rpn_regr = np.transpose(y_rpn_regr, (2, 0, 1))
-    y_rpn_regr = np.expand_dims(y_rpn_regr, axis=0)
+    reg_gt = np.transpose(reg_gt, (2, 0, 1))
+    reg_gt = np.expand_dims(reg_gt, axis=0)
     
     pos_locs = np.where(np.logical_and(has_table[0, :, :, :] == 1, is_foreground[0, :, :, :] == 1))
     neg_locs = np.where(np.logical_and(has_table[0, :, :, :] == 0, is_foreground[0, :, :, :] == 1))
@@ -159,9 +159,9 @@ def generate_roi_props(labels,resized_width, resized_height):
         val_locs = random.sample(range(len(neg_locs[0])), len(neg_locs[0]) - num_pos)
         is_foreground[0, neg_locs[0][val_locs], neg_locs[1][val_locs], neg_locs[2][val_locs]] = 0
     
-    y_rpn_cls = np.concatenate([is_foreground, has_table], axis=1)
-    y_rpn_regr = np.concatenate([np.repeat(has_table, 4, axis=1), y_rpn_regr], axis=1)
-    return np.copy(y_rpn_cls), np.copy(y_rpn_regr), num_pos
+    cls_gt = np.concatenate([is_foreground, has_table], axis=1)
+    reg_gt = np.concatenate([np.repeat(has_table, 4, axis=1), reg_gt], axis=1)
+    return np.copy(cls_gt), np.copy(reg_gt), num_pos
 
 
 def get_anchor_gt(images, labels):
@@ -172,20 +172,20 @@ def get_anchor_gt(images, labels):
             image_data = images[index]
             label_data = np.expand_dims(labels[index], axis=0) # We expect labels to be (n, 4) in shape
             try:
-                y_rpn_cls, y_rpn_regr, _ = generate_roi_props(label_data, resized_width, resized_height)
+                cls_gt, reg_gt, _ = generate_roi_props(label_data, resized_width, resized_height)
                 image_data = preprocess_input(image_data)
 
                 image_data = np.transpose(image_data, (2, 0, 1))
                 image_data = np.expand_dims(image_data, axis=0)
 
-                # y_rpn_regr is a concat of y_rpn_overlap (x4) and y_rpn_regr. Looks like we are converting y_rpn_regr vals to float
-                y_rpn_regr[:, y_rpn_regr.shape[1]//2:, :, :] *= 1.0
+                # reg_gt is a concat of y_rpn_overlap (x4) and reg_gt. Looks like we are converting reg_gt vals to float
+                reg_gt[:, reg_gt.shape[1]//2:, :, :] *= 1.0
 
                 image_data = np.transpose(image_data, (0, 2, 3, 1)) 
-                y_rpn_cls = np.transpose(y_rpn_cls, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9)
-                y_rpn_regr = np.transpose(y_rpn_regr, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9)
+                cls_gt = np.transpose(cls_gt, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9)
+                reg_gt = np.transpose(reg_gt, (0, 2, 3, 1)) # Convert (2 x 9 x 16 x 16) to (2 x 16 x 16 x 9)
 
-                yield np.copy(image_data), [np.copy(y_rpn_cls), np.copy(y_rpn_regr)], label_data, index
+                yield np.copy(image_data), [np.copy(cls_gt), np.copy(reg_gt)], label_data, index
 
             except Exception as e:
                 print(e)

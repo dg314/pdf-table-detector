@@ -84,6 +84,8 @@ def match_regions(y_true, y_predicted, threshold=0.3):
                 hits.append(pred_roi)
                 accuracy.append(match)
     
+    hits = [x for x, _ in sorted(zip(hits, accuracy), key=lambda pair: pair[1], reverse=True)]
+    accuracy = sorted(accuracy, reverse=True)
     if len(accuracy) > 0:
         mean_acc = np.mean(accuracy)
     else:
