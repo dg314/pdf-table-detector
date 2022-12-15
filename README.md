@@ -1,5 +1,6 @@
 # Faster R-CNN for Table detection
 
+![plot](ProjectFinal_Poster.jpg)
 
 ## Group members
 
